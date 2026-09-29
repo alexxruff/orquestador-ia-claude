@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plan de tareas</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="barra-izq">
+      <h1>Plan de tareas</h1>
+      <nav class="pestanas" id="pestanas">
+        <button class="pestana activa" data-vista="tablero">Tablero</button>
+        <button class="pestana" data-vista="dependencias">Dependencias</button>
+        <button class="pestana" data-vista="migraciones">Migraciones</button>
+        <button class="pestana" data-vista="documentos">Propuestas</button>
+      </nav>
+    </div>
+    <div class="barra-der">
+      <div class="agrupar" id="agrupar" hidden>
+        <span>Agrupar por</span>
+        <button class="chip activa" data-agrupar="estado">estado</button>
+        <button class="chip" data-agrupar="repo">repo</button>
+      </div>
+      <button class="boton" id="btn-recargar" title="Volver a leer el archivo">Recargar</button>
+      <button class="boton primario" id="btn-nueva">Nueva tarea</button>
+    </div>
+  </header>
+
+  <div class="aviso" id="aviso" hidden></div>
+
+  <main id="vista-tablero" class="vista"></main>
+  <main id="vista-dependencias" class="vista" hidden></main>
+  <main id="vista-migraciones" class="vista" hidden></main>
+  <main id="vista-documentos" class="vista vista-docs" hidden>
+    <aside class="lista-docs" id="lista-docs"></aside>
+    <article class="doc md" id="doc"><p class="vacio">Elige un documento de la izquierda.</p></article>
+  </main>
+
+  <!-- Editor de tarea -->
+  <div class="telon" id="telon-editor" hidden>
+    <section class="panel" role="dialog" aria-modal="true" aria-labelledby="titulo-editor">
+      <header class="panel-cab cab-tarea">
+        <div class="cab-fila">
+          <h2 id="titulo-editor">Tarea</h2>
+          <div class="cab-marcas" id="cab-marcas" hidden></div>
+          <button class="cerrar" id="btn-cerrar-editor" aria-label="Cerrar">&times;</button>
+        </div>
+        <p class="cab-titulo" id="cab-titulo-tarea" hidden></p>
+      </header>
+
+      <div class="lectura" id="lectura"></div>
+      <footer class="panel-pie" id="pie-lectura">
+        <button type="button" class="boton" id="btn-cerrar-lectura">Cerrar</button>
+        <button type="button" class="boton primario" id="btn-editar">Editar</button>
+      </footer>
+
+      <form class="formulario" id="formulario" hidden>
+        <div class="formulario-cuerpo">
+          <div class="fila dos">
+            <label>
+              <span>Numero</span>
+              <input type="text" id="campo-id" readonly>
+              <small id="nota-id"></small>
+            </label>
+            <label>
+              <span>Repo</span>
+              <select id="campo-repo" required></select>
+            </label>
+          </div>
+
+          <label>
+            <span>Titulo</span>
+            <input type="text" id="campo-titulo" required>
+          </label>
+
+          <label>
+            <span>Descripcion</span>
+            <textarea id="campo-descripcion" rows="5"></textarea>
+          </label>
+
+          <label>
+            <span>Criterios de aceptacion <small>uno por renglon</small></span>
+            <textarea id="campo-acceptance" rows="5"></textarea>
+          </label>
+
+          <div class="fila dos">
+            <label>
+              <span>Estado</span>
+              <select id="campo-estado"></select>
+            </label>
+            <label>
+              <span>Depende de</span>
+              <select id="campo-depends"></select>
+              <small id="nota-depends"></small>
+            </label>
+          </div>
+
+          <label>
+            <span>Handoff <small>repo al que avisa, o ninguno</small></span>
+            <select id="campo-handoff"></select>
+          </label>
+
+          <label>
+            <span>Propuesta tecnica</span>
+            <textarea id="campo-propuesta" rows="6"></textarea>
+          </label>
+
+          <label>
+            <span>Commit</span>
+            <textarea id="campo-commit" rows="4"></textarea>
+          </label>
+
+          <fieldset class="grupo-campos">
+            <legend>Migracion <small>vacio si la tarea no toca los datos que ya existen</small></legend>
+            <label>
+              <span>Script</span>
+              <input type="text" id="campo-migracion-script" placeholder="scripts/migrateAlgo.js">
+            </label>
+            <label>
+              <span>Que hace <small>en una frase, que le pasa a los datos que ya existen</small></span>
+              <textarea id="campo-migracion-quehace" rows="2"></textarea>
+            </label>
+            <p class="nota-campos" id="nota-aplicada"></p>
+          </fieldset>
+
+          <div class="errores" id="errores" hidden></div>
+        </div>
+
+        <footer class="panel-pie">
+          <button type="button" class="boton" id="btn-cancelar">Cancelar</button>
+          <button type="submit" class="boton primario" id="btn-guardar">Guardar</button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+  <!-- Conflicto de escritura -->
+  <div class="telon" id="telon-conflicto" hidden>
+    <section class="panel ancho" role="dialog" aria-modal="true" aria-labelledby="titulo-conflicto">
+      <header class="panel-cab">
+        <h2 id="titulo-conflicto">El archivo cambio mientras editabas</h2>
+      </header>
+      <div class="conflicto-cuerpo">
+        <p class="conflicto-resumen" id="conflicto-resumen"></p>
+        <p class="conflicto-nota" id="conflicto-nota"></p>
+
+        <h3>Que cambio en el archivo</h3>
+        <ul class="cambios" id="conflicto-cambios"></ul>
+
+        <div id="conflicto-lados" hidden>
+          <h3>Tu version y la del archivo, lado a lado</h3>
+          <div class="lados" id="lados"></div>
+        </div>
+      </div>
+      <footer class="panel-pie conflicto-pie">
+        <button type="button" class="boton" id="btn-conflicto-volver">Seguir editando</button>
+        <button type="button" class="boton" id="btn-conflicto-lados">Ver los dos lados</button>
+        <button type="button" class="boton" id="btn-conflicto-reaplicar" hidden>Guardar sobre la version nueva</button>
+        <button type="button" class="boton peligro" id="btn-conflicto-recargar">Recargar y perder mis cambios</button>
+      </footer>
+    </section>
+  </div>
+
+  <!-- Confirmar un movimiento de columna -->
+  <div class="telon telon-alto" id="telon-confirmar" hidden>
+    <section class="panel estrecho" role="dialog" aria-modal="true" aria-labelledby="confirmar-titulo">
+      <header class="panel-cab">
+        <h2 id="confirmar-titulo">Confirmar</h2>
+      </header>
+      <div class="confirmar-cuerpo">
+        <p id="confirmar-mensaje"></p>
+        <div class="movimiento" id="confirmar-movimiento" hidden></div>
+      </div>
+      <footer class="panel-pie">
+        <button type="button" class="boton" id="btn-confirmar-no">Cancelar</button>
+        <button type="button" class="boton primario" id="btn-confirmar-si">Confirmar</button>
+      </footer>
+    </section>
+  </div>
+
+  <!-- Devolver una tarea de in_review: el motivo se queda escrito -->
+  <div class="telon telon-alto" id="telon-motivo" hidden>
+    <section class="panel estrecho" role="dialog" aria-modal="true" aria-labelledby="motivo-titulo">
+      <header class="panel-cab">
+        <h2 id="motivo-titulo">Devolver la tarea</h2>
+      </header>
+      <div class="motivo-cuerpo">
+        <p id="motivo-mensaje"></p>
+        <label>
+          <span>Por que la devuelves</span>
+          <textarea id="campo-motivo" rows="4" placeholder="Que fallo al probarla."></textarea>
+        </label>
+        <p class="nota-campos">Se guarda en <code>revisiones</code>, con la fecha. Las devoluciones se acumulan: no se pisa la anterior.</p>
+        <div class="errores" id="motivo-error" hidden></div>
+      </div>
+      <footer class="panel-pie">
+        <button type="button" class="boton" id="btn-motivo-no">Cancelar</button>
+        <button type="button" class="boton primario" id="btn-motivo-si">Devolver a in_progress</button>
+      </footer>
+    </section>
+  </div>
+
+  <div class="brindis" id="brindis" hidden></div>
+
+  <script src="/lib/markdown.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

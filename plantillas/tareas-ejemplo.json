@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "repo": "backend",
+    "titulo": "Que el cliente pueda descargar su factura desde el portal",
+    "descripcion": "Hoy la factura sólo llega por correo, y cuando el cliente la pierde nos escribe para pedirla. En el detalle de cada pedido pagado tiene que aparecer la opción de descargar la factura en PDF. Sólo el dueño del pedido la puede descargar.",
+    "acceptance": [
+      "en un pedido pagado se puede descargar la factura en PDF",
+      "en un pedido sin pagar no aparece la opción",
+      "nadie puede descargar la factura de un pedido que no es suyo, ni cambiando el enlace",
+      "funciona en teléfono"
+    ],
+    "handoff": "frontend",
+    "dependsOn": null,
+    "estado": "in_review",
+    "propuestaTecnica": "GET /orders/:id/invoice en orders/ordersRoutes.js, detrás de la sesión y comprobando que el pedido sea del usuario (404 si no, para no revelar que existe). El PDF lo arma invoiceService.js con la librería que ya se usa para los recibos. 409 si el pedido no está pagado. Contrato en docs/ENDPOINTS-PEDIDOS.md y en plan/handoff/1.md.",
+    "commit": "feat: el cliente descarga su factura desde el detalle del pedido",
+    "migracion": null,
+    "revisiones": [
+      {
+        "fecha": "2026-01-15",
+        "motivo": "el PDF sale sin el RFC del cliente"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "repo": "frontend",
+    "titulo": "El botón de descargar factura en el detalle del pedido",
+    "descripcion": "Usa lo que el backend dejó listo en la #1. En el detalle de un pedido pagado aparece un botón para descargar la factura; en uno sin pagar no aparece. Si la descarga falla, se le dice al cliente qué hacer, no qué falló adentro.",
+    "acceptance": [
+      "en un pedido pagado aparece el botón y descarga el PDF",
+      "en un pedido sin pagar no aparece el botón",
+      "si falla, el mensaje dice qué hacer",
+      "funciona en teléfono"
+    ],
+    "handoff": null,
+    "dependsOn": 1,
+    "estado": "pending",
+    "propuestaTecnica": null,
+    "commit": null,
+    "migracion": null
+  }
+]

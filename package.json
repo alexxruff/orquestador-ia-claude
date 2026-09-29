@@ -1,0 +1,13 @@
+{
+  "name": "orquestador-ia-claude",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Repo de control para coordinar con Claude Code el trabajo de varios repos. El panel local vive en tools/panel.",
+  "scripts": {
+    "panel": "node tools/panel/server.js",
+    "panel:probar": "node tools/panel/probar.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

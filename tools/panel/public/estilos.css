@@ -1,0 +1,523 @@
+:root {
+  --fondo: #11131a;
+  --fondo-2: #171a23;
+  --fondo-3: #1e222d;
+  --linea: #2b3040;
+  --texto: #e6e8ee;
+  --tenue: #9aa2b5;
+  --apagado: #6b7488;
+  --acento: #6aa8ff;
+  --acento-fondo: #1b2a44;
+  --peligro: #ff6b6b;
+  --revision: #58c4dd;
+  --ok: #4ec98a;
+  --aviso: #f0b849;
+  /* Un color por repo: el punto de la marca y el borde de la tarjeta usan el
+     mismo tono, para reconocer de un vistazo de que lado es cada tarea.
+     Son los dos huecos que quedaban libres en la paleta —magenta y lima—: el
+     naranja ya es `--aviso` (in_progress, dep, migracion pendiente) y el verde
+     ya es `--ok` (done, handoff), asi que el repo habria dicho lo mismo que el
+     estado con el mismo color. */
+  --repo-backend: #ec72b8;
+  --repo-backend-borde: #7d3a63;
+  --repo-backend-borde-vivo: #b0538b;
+  --repo-backend-fondo: #2a1220;
+  --repo-backend-texto: #f3a8d3;
+  --repo-frontend: #b3d95c;
+  --repo-frontend-borde: #5d7433;
+  --repo-frontend-borde-vivo: #86a844;
+  --repo-frontend-fondo: #1d2412;
+  --repo-frontend-texto: #cfe89a;
+}
+
+* { box-sizing: border-box; }
+
+/* El [hidden] del navegador lo pisa cualquier regla de autor que declare
+   display (.telon es flex, .vista-docs es grid). Sin esto los dialogos y las
+   vistas ocultas arrancan visibles. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 14px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+
+/* --- Barra superior --- */
+.barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 20px;
+  background: var(--fondo-2);
+  border-bottom: 1px solid var(--linea);
+  position: sticky; top: 0; z-index: 10;
+  flex-wrap: wrap;
+}
+.barra-izq, .barra-der { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.barra h1 { font-size: 15px; letter-spacing: .2px; }
+
+.pestanas { display: flex; gap: 2px; background: var(--fondo-3); padding: 3px; border-radius: 8px; }
+.pestana {
+  border: 0; background: transparent; color: var(--tenue);
+  padding: 5px 12px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;
+}
+.pestana:hover { color: var(--texto); }
+.pestana.activa { background: var(--fondo); color: var(--texto); }
+
+.agrupar { display: flex; align-items: center; gap: 6px; color: var(--apagado); font-size: 12px; }
+.chip {
+  border: 1px solid var(--linea); background: transparent; color: var(--tenue);
+  padding: 3px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px;
+}
+.chip.activa { background: var(--acento-fondo); border-color: var(--acento); color: #cfe2ff; }
+
+.boton {
+  border: 1px solid var(--linea); background: var(--fondo-3); color: var(--texto);
+  padding: 6px 14px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px;
+}
+.boton:hover { border-color: #3b4258; }
+.boton.primario { background: var(--acento-fondo); border-color: #34537f; color: #d7e7ff; }
+.boton.peligro { background: #3a1f24; border-color: #6b3038; color: #ffc9c9; }
+.boton:disabled { opacity: .5; cursor: default; }
+
+.aviso {
+  margin: 0; padding: 10px 20px;
+  background: #3a2f16; color: #ffe1a6; border-bottom: 1px solid #5a4720;
+  font-size: 13px;
+}
+
+/* --- Tablero --- */
+.vista { padding: 20px; }
+
+/* El tablero se queda del alto de la pantalla: lo que se desborda se desplaza
+   DENTRO de cada columna. Asi una columna con cuarenta tarjetas ya no arrastra
+   el scroll de la pagina —y de paso las otras columnas—, y las cabeceras de
+   todas siguen a la vista. El alto exacto lo pone `ajustarAltoTablero` con lo
+   que mide debajo de la barra; el calc de reserva es por si aun no corrio. */
+#vista-tablero { height: var(--alto-tablero, calc(100vh - 76px)); }
+
+.grupos { display: flex; gap: 16px; align-items: stretch; overflow-x: auto; height: 100%; padding-bottom: 4px; }
+.grupo { flex: 0 0 320px; min-width: 320px; display: flex; flex-direction: column; min-height: 0; }
+.grupo-cab {
+  display: flex; align-items: baseline; gap: 8px; flex: none;
+  padding: 0 4px 10px; color: var(--tenue);
+  text-transform: uppercase; font-size: 11px; letter-spacing: .8px;
+}
+.grupo-cab .cuenta { color: var(--apagado); text-transform: none; letter-spacing: 0; }
+/* `min-height: 0` es lo que deja encogerse a la lista dentro de su columna; sin
+   el volveria a estirarse con las tarjetas y no habria nada que desplazar. */
+.grupo-lista {
+  display: flex; flex-direction: column; gap: 10px;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  padding: 1px 6px 14px 1px;
+  scrollbar-width: thin; scrollbar-color: var(--linea) transparent;
+}
+
+.tarjeta {
+  background: var(--fondo-2); border: 1px solid var(--linea); border-left-width: 3px;
+  border-radius: 9px; padding: 12px 13px; cursor: pointer;
+}
+.tarjeta:hover { border-color: #3b4258; border-left-color: var(--acento); background: var(--fondo-3); }
+.tarjeta-cab { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+.tarjeta-num { color: var(--apagado); font-variant-numeric: tabular-nums; font-size: 12px; }
+.tarjeta-titulo { font-weight: 600; font-size: 13.5px; line-height: 1.35; }
+.tarjeta-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+
+.marca {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--linea); color: var(--tenue); background: var(--fondo-3);
+}
+.marca.repo { color: #b8c6e0; display: inline-flex; align-items: center; gap: 6px; }
+.marca.repo.repo-backend {
+  color: var(--repo-backend-texto);
+  border-color: var(--repo-backend-borde);
+  background: var(--repo-backend-fondo);
+}
+.marca.repo.repo-frontend {
+  color: var(--repo-frontend-texto);
+  border-color: var(--repo-frontend-borde);
+  background: var(--repo-frontend-fondo);
+}
+.punto-repo { background: var(--apagado); }
+.repo-backend .punto-repo { background: var(--repo-backend); }
+.repo-frontend .punto-repo { background: var(--repo-frontend); }
+.marca.dep { color: #ffd9a8; border-color: #5a4720; background: #33291a; }
+.marca.bloquea { color: #ffb0b0; border-color: #5a2b2b; background: #33201f; }
+.marca.handoff { color: #b7e5cd; border-color: #2b5341; background: #1b3229; }
+.marca.migracion { color: #d8c6ff; border-color: #453a6b; background: #241f39; }
+.marca.migracion.pendiente { color: #ffd9a8; border-color: #5a4720; background: #33291a; }
+.marca.devuelta { color: #ffc9c9; border-color: #6b3038; background: #2c1d21; }
+
+/* Tres lados y no el atajo `border-color`: el izquierdo es del estado. Estas
+   reglas ganan por especificidad, asi que el hover tampoco los borra. */
+.tarjeta.repo-backend {
+  border-top-color: var(--repo-backend-borde);
+  border-right-color: var(--repo-backend-borde);
+  border-bottom-color: var(--repo-backend-borde);
+}
+.tarjeta.repo-backend:hover {
+  border-top-color: var(--repo-backend-borde-vivo);
+  border-right-color: var(--repo-backend-borde-vivo);
+  border-bottom-color: var(--repo-backend-borde-vivo);
+}
+.tarjeta.repo-frontend {
+  border-top-color: var(--repo-frontend-borde);
+  border-right-color: var(--repo-frontend-borde);
+  border-bottom-color: var(--repo-frontend-borde);
+}
+.tarjeta.repo-frontend:hover {
+  border-top-color: var(--repo-frontend-borde-vivo);
+  border-right-color: var(--repo-frontend-borde-vivo);
+  border-bottom-color: var(--repo-frontend-borde-vivo);
+}
+
+.estado-pending     { border-left-color: #6b7488; }
+.estado-proposed    { border-left-color: #a78bfa; }
+.estado-in_progress { border-left-color: var(--aviso); }
+.estado-in_review   { border-left-color: var(--revision); }
+.estado-done        { border-left-color: var(--ok); }
+.estado-blocked     { border-left-color: var(--peligro); }
+
+.punto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.punto-pending { background: #6b7488; }
+.punto-proposed { background: #a78bfa; }
+.punto-in_progress { background: var(--aviso); }
+.punto-in_review { background: var(--revision); }
+.punto-done { background: var(--ok); }
+.punto-blocked { background: var(--peligro); }
+
+/* Aprobar o devolver, desde la propia tarjeta. */
+.tarjeta-acciones { display: flex; gap: 7px; margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--linea); }
+.accion {
+  flex: 1; border: 1px solid var(--linea); background: var(--fondo-3); color: var(--tenue);
+  padding: 5px 10px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 12px;
+}
+.accion:hover { color: var(--texto); border-color: #3b4258; }
+.accion.aprobar:hover { background: #1b3229; border-color: #2b5341; color: #b7e5cd; }
+.accion.devolver:hover { background: #2c1d21; border-color: #6b3038; color: #ffc9c9; }
+.accion:disabled { opacity: .5; cursor: default; }
+
+/* Casilla de «ya se corrio aqui»: la marca el usuario, nunca un agente. */
+.casilla {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--linea); background: var(--fondo-3); color: var(--tenue);
+  padding: 3px 10px 3px 5px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px;
+}
+.casilla:hover { border-color: #3b4258; color: var(--texto); }
+.casilla .marco {
+  width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--linea);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; line-height: 1; background: var(--fondo);
+}
+.casilla.puesta { color: #b7e5cd; border-color: #2b5341; background: #1b3229; }
+.casilla.puesta .marco { background: var(--ok); border-color: var(--ok); color: #0d2018; font-weight: 700; }
+.casilla:disabled { opacity: .5; cursor: default; }
+
+.vacio { color: var(--apagado); font-style: italic; padding: 10px 4px; }
+
+/* --- Dependencias --- */
+.cadenas { display: flex; flex-direction: column; gap: 22px; max-width: 900px; }
+.cadena { background: var(--fondo-2); border: 1px solid var(--linea); border-radius: 10px; padding: 14px 16px; }
+.cadena-titulo { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--apagado); margin-bottom: 12px; }
+.eslabon { display: flex; align-items: flex-start; gap: 10px; padding: 3px 0; }
+.eslabon .guia { color: var(--apagado); font-family: ui-monospace, monospace; white-space: pre; user-select: none; }
+.eslabon .nodo {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 3px 9px; border-radius: 7px; border: 1px solid transparent;
+}
+.eslabon .nodo:hover { background: var(--fondo-3); border-color: var(--linea); }
+.eslabon .nodo .num { color: var(--apagado); font-variant-numeric: tabular-nums; font-size: 12px; }
+.eslabon .nodo .txt { font-size: 13px; }
+.eslabon .nodo .est { font-size: 11px; color: var(--apagado); }
+
+/* --- Migraciones --- */
+.migraciones { display: flex; flex-direction: column; gap: 22px; max-width: 1100px; }
+.resumen-migraciones {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--fondo-2); border: 1px solid var(--linea); border-radius: 10px;
+  padding: 14px 18px; font-size: 13.5px; color: var(--tenue);
+}
+.resumen-migraciones .cifra { font-size: 24px; font-weight: 600; color: var(--ok); font-variant-numeric: tabular-nums; }
+.resumen-migraciones .cifra.alerta { color: var(--aviso); }
+
+.grupo-migraciones { background: var(--fondo-2); border: 1px solid var(--linea); border-radius: 10px; padding: 14px 16px; }
+.grupo-migraciones.urgente { border-color: #5a4720; }
+.grupo-migraciones.urgente .cadena-titulo { color: #ffe1a6; }
+
+.tabla-migraciones { border-collapse: collapse; width: 100%; font-size: 13px; }
+.tabla-migraciones th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+  color: var(--apagado); font-weight: 500; padding: 0 12px 8px 0; border-bottom: 1px solid var(--linea);
+}
+.tabla-migraciones td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--linea); vertical-align: top; }
+.tabla-migraciones tr:last-child td { border-bottom: 0; }
+.tabla-migraciones .celda-tarea { min-width: 220px; }
+.tabla-migraciones .celda-tarea .sub { margin-top: 3px; font-size: 11.5px; color: var(--apagado); }
+.tabla-migraciones .celda-script { white-space: nowrap; }
+.tabla-migraciones .celda-script code {
+  background: #0d0f15; border: 1px solid var(--linea); border-radius: 5px; padding: 2px 7px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #cfe2ff;
+}
+.tabla-migraciones .celda-script .copiar { margin-left: 7px; vertical-align: middle; }
+.tabla-migraciones .celda-quehace { color: var(--tenue); line-height: 1.5; min-width: 240px; }
+.tabla-migraciones .celda-donde { white-space: nowrap; }
+.tabla-migraciones .celda-donde .casilla + .casilla { margin-left: 6px; }
+.tabla-migraciones .enlace-tarea {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--acento);
+  cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px;
+}
+
+/* --- Documentos --- */
+.vista-docs { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 22px; align-items: start; }
+.lista-docs { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 76px; }
+.lista-docs .cabecera { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--apagado); padding: 12px 8px 5px; }
+.lista-docs button {
+  text-align: left; border: 1px solid transparent; background: transparent; color: var(--tenue);
+  padding: 7px 9px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 12.5px; line-height: 1.35;
+}
+.lista-docs button:hover { background: var(--fondo-2); color: var(--texto); }
+.lista-docs button.activa { background: var(--acento-fondo); border-color: #34537f; color: #d7e7ff; }
+
+.doc { background: var(--fondo-2); border: 1px solid var(--linea); border-radius: 10px; padding: 26px 32px; max-width: 900px; min-width: 0; }
+.md h1 { font-size: 22px; margin: 0 0 14px; line-height: 1.3; }
+.md h2 { font-size: 17px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--linea); }
+.md h3 { font-size: 14.5px; margin: 20px 0 8px; color: #cbd3e4; }
+.md p { margin: 0 0 12px; }
+.md ul, .md ol { margin: 0 0 12px; padding-left: 22px; }
+.md li { margin: 4px 0; }
+.md code { background: var(--fondo-3); border: 1px solid var(--linea); border-radius: 4px; padding: 1px 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.md pre { background: #0d0f15; border: 1px solid var(--linea); border-radius: 8px; padding: 13px 15px; overflow-x: auto; }
+.md pre code { background: none; border: 0; padding: 0; font-size: 12.5px; line-height: 1.5; }
+.md blockquote { margin: 0 0 12px; padding: 2px 0 2px 15px; border-left: 3px solid var(--acento); color: #c3cde0; }
+.md blockquote p:last-child { margin-bottom: 0; }
+.md hr { border: 0; border-top: 1px solid var(--linea); margin: 22px 0; }
+.md a { color: var(--acento); }
+.md table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.md th, .md td { border: 1px solid var(--linea); padding: 7px 10px; text-align: left; vertical-align: top; }
+.md th { background: var(--fondo-3); font-weight: 600; }
+.tabla-scroll { overflow-x: auto; margin: 0 0 14px; }
+
+/* --- Telon y paneles --- */
+.telon {
+  position: fixed; inset: 0; background: rgba(6, 8, 12, .72);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 20px; overflow-y: auto; z-index: 50;
+}
+/* El panel no crece con su contenido: se queda en la pantalla y lo que se
+   desborda se desplaza DENTRO. Asi la cabecera —de que tarea estoy leyendo— y
+   el pie —cerrar, editar— no se van hacia arriba en cuanto la tarea es larga. */
+.panel {
+  background: var(--fondo-2); border: 1px solid var(--linea); border-radius: 12px;
+  width: 100%; max-width: 640px; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; max-height: calc(100vh - 80px); min-height: 0;
+}
+.panel.ancho { max-width: 940px; }
+.panel-cab, .panel-pie { flex: none; }
+/* Los cuerpos de los dialogos: lo unico que se desplaza. `min-height: 0` es lo
+   que deja encogerse a un hijo de flex por debajo de su contenido; sin el, el
+   panel volveria a estirarse y el scroll se lo quedaria la pagina entera. */
+.lectura, .formulario-cuerpo, .conflicto-cuerpo, .confirmar-cuerpo, .motivo-cuerpo {
+  overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain;
+}
+.panel-cab {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 20px; border-bottom: 1px solid var(--linea);
+}
+.panel-cab h2 { font-size: 15px; }
+/* La cabecera de una tarea abierta: numero y marcas en el mismo renglon, y el
+   titulo debajo, a ancho completo. */
+.cab-tarea { display: block; }
+.cab-fila { display: flex; align-items: center; gap: 10px; }
+.cab-fila h2 { flex: none; }
+.cab-marcas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+.cab-fila .cerrar { flex: none; margin-left: auto; }
+.cab-titulo {
+  margin: 7px 0 0; font-size: 14.5px; line-height: 1.45; color: var(--texto); font-weight: 600;
+}
+.cerrar { border: 0; background: transparent; color: var(--tenue); font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px; }
+.cerrar:hover { color: var(--texto); }
+.panel-pie { display: flex; justify-content: flex-end; gap: 9px; padding: 15px 20px; border-top: 1px solid var(--linea); }
+
+/* --- Tarea en solo lectura --- */
+.lectura { padding: 18px 20px; display: flex; flex-direction: column; gap: 13px; }
+.lectura .campo + .campo { border-top: 1px solid var(--linea); padding-top: 13px; }
+.lectura .campo .nombre {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 6px;
+}
+/* El rotulo de la seccion ES el tirador que la pliega: se pulsa en todo su
+   ancho, no solo en la flecha. El boton de copiar queda a su lado, fuera. */
+.lectura .campo .plegar {
+  display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+  background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left;
+  font: inherit; font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+  color: var(--apagado);
+}
+.lectura .campo .plegar:hover { color: var(--tenue); }
+.lectura .campo .flecha {
+  flex: none; width: 0; height: 0; border-left: 4.5px solid currentColor;
+  border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent;
+  transform: rotate(90deg); transition: transform .12s ease;
+}
+.lectura .campo.plegado .flecha { transform: rotate(0deg); }
+.lectura .campo.plegado .contenido { display: none; }
+.lectura .campo .cuerpo { font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+
+/* La propuesta tecnica es Markdown y se lee como tal: los renglones sueltos y
+   la enumeracion metida en el parrafo se pintan con la tipografia de los
+   documentos, no como un ladrillo de texto plano. */
+.lectura .campo .cuerpo.md {
+  white-space: normal; word-break: normal; overflow-wrap: anywhere;
+  background: var(--fondo); border: 1px solid var(--linea); border-radius: 9px;
+  padding: 14px 16px; line-height: 1.65;
+}
+.lectura .campo .cuerpo.md > :last-child { margin-bottom: 0; }
+.lectura .campo .cuerpo.md p { margin: 0 0 11px; }
+.lectura .campo .cuerpo.md ol, .lectura .campo .cuerpo.md ul { padding-left: 20px; margin: 0 0 11px; }
+.lectura .campo .cuerpo.md li { margin: 0 0 9px; }
+.lectura .campo .cuerpo.md li:last-child { margin-bottom: 0; }
+.lectura .campo .cuerpo.md li::marker { color: var(--acento); font-weight: 600; }
+.lectura .campo .cuerpo.md strong { color: #f0f3fa; }
+.lectura .campo .cuerpo.md code { font-size: 12px; }
+
+/* La migracion y las devoluciones, en la tarea abierta. */
+.migracion-lectura { display: flex; flex-direction: column; gap: 9px; }
+.migracion-lectura .script { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.migracion-lectura .script code {
+  background: #0d0f15; border: 1px solid var(--linea); border-radius: 5px; padding: 3px 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #cfe2ff;
+}
+.migracion-lectura .quehace { margin: 0; font-size: 13.5px; line-height: 1.6; }
+.migracion-lectura .donde { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.migracion-lectura .donde .rotulo { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--apagado); }
+
+.devoluciones { display: flex; flex-direction: column; gap: 8px; }
+.devolucion { background: #2c1d21; border: 1px solid #6b3038; border-radius: 8px; padding: 10px 12px; }
+.devolucion .cuando { font-size: 11px; color: #e0a5a5; font-variant-numeric: tabular-nums; letter-spacing: .3px; }
+.devolucion .motivo { margin-top: 4px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; }
+
+/* Copiar al portapapeles, en la cabecera del campo. */
+.copiar {
+  border: 1px solid var(--linea); background: var(--fondo-3); color: var(--tenue);
+  font: inherit; font-size: 11px; letter-spacing: .4px; text-transform: none;
+  padding: 2px 9px; border-radius: 6px; cursor: pointer; flex: none;
+}
+.copiar:hover { color: var(--texto); border-color: #3b4256; }
+.copiar.hecho { color: var(--ok); border-color: #2f6b4c; }
+.lectura .campo .cuerpo.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  background: #0d0f15; border: 1px solid var(--linea); border-radius: 8px;
+  padding: 11px 13px; max-height: 260px; overflow-y: auto;
+}
+.lectura .campo .cuerpo.vacio { color: var(--apagado); font-style: italic; }
+.lectura ul.criterios { margin: 0; padding-left: 19px; }
+.lectura ul.criterios li { margin: 4px 0; font-size: 13.5px; line-height: 1.5; }
+.lectura .enlace-tarea {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--acento);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+
+/* --- Confirmar --- */
+.telon-alto { z-index: 60; }
+.panel.estrecho { max-width: 460px; }
+.confirmar-cuerpo { padding: 18px 20px; }
+.confirmar-cuerpo p { margin: 0; font-size: 14px; line-height: 1.6; }
+.movimiento {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 18px; padding: 14px; background: var(--fondo-3);
+  border: 1px solid var(--linea); border-radius: 9px;
+}
+.movimiento .columna { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.movimiento .flecha { color: var(--apagado); font-size: 16px; }
+
+/* --- Formulario --- */
+.formulario { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.formulario-cuerpo { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.formulario label { display: flex; flex-direction: column; gap: 5px; }
+.formulario label > span { font-size: 12px; color: var(--tenue); }
+.formulario label > span small { color: var(--apagado); font-weight: normal; }
+.formulario small { font-size: 11.5px; color: var(--apagado); }
+.fila { display: flex; gap: 14px; }
+.fila.dos > label { flex: 1; min-width: 0; }
+
+input, textarea, select {
+  background: var(--fondo); border: 1px solid var(--linea); color: var(--texto);
+  border-radius: 7px; padding: 8px 10px; font: inherit; font-size: 13px; width: 100%;
+}
+textarea { resize: vertical; line-height: 1.5; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--acento); }
+input[readonly] { color: var(--tenue); background: var(--fondo-3); }
+
+.errores {
+  background: #3a1f24; border: 1px solid #6b3038; color: #ffc9c9;
+  border-radius: 8px; padding: 11px 14px; font-size: 13px;
+}
+.errores ul { margin: 6px 0 0; padding-left: 20px; }
+.errores li { margin: 3px 0; }
+
+.grupo-campos {
+  border: 1px solid var(--linea); border-radius: 9px; padding: 4px 14px 14px;
+  margin: 0; display: flex; flex-direction: column; gap: 12px;
+}
+.grupo-campos legend { font-size: 12px; color: var(--tenue); padding: 0 6px; }
+.grupo-campos legend small { color: var(--apagado); }
+.nota-campos { margin: 0; font-size: 11.5px; color: var(--apagado); line-height: 1.5; }
+.nota-campos:empty { display: none; }
+.nota-campos code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--tenue); }
+
+/* --- Devolver una tarea --- */
+.motivo-cuerpo { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.motivo-cuerpo p { margin: 0; font-size: 14px; line-height: 1.6; }
+.motivo-cuerpo label { display: flex; flex-direction: column; gap: 5px; }
+.motivo-cuerpo label > span { font-size: 12px; color: var(--tenue); }
+
+/* --- Conflicto --- */
+.conflicto-cuerpo { padding: 18px 20px; }
+.conflicto-resumen { margin: 0 0 8px; font-size: 14px; }
+.conflicto-nota { margin: 0 0 18px; color: var(--tenue); font-size: 13px; }
+.conflicto-cuerpo h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--apagado); margin: 20px 0 9px; }
+.conflicto-cuerpo h3:first-of-type { margin-top: 0; }
+.conflicto-pie { flex-wrap: wrap; }
+
+.cambios { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cambios li { background: var(--fondo-3); border: 1px solid var(--linea); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.cambios li.mio { border-color: #6b3038; background: #2c1d21; }
+.cambios .quien { font-size: 11px; color: var(--apagado); text-transform: uppercase; letter-spacing: .6px; }
+.cambios .que { margin-top: 3px; }
+.cambios .que b { color: #cfe2ff; font-weight: 600; }
+.cambios .valores { margin-top: 7px; display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 3px 9px; font-size: 12.5px; }
+.cambios .valores .rotulo { color: var(--apagado); }
+.cambios .valores .valor { font-family: ui-monospace, Menlo, monospace; word-break: break-word; white-space: pre-wrap; }
+.cambios .valores .valor.antes { color: #ffb3b3; }
+.cambios .valores .valor.despues { color: #a5e6c0; }
+
+.lados { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.lado { background: var(--fondo-3); border: 1px solid var(--linea); border-radius: 9px; overflow: hidden; }
+.lado.tuyo { border-color: #34537f; }
+.lado-cab { padding: 9px 13px; border-bottom: 1px solid var(--linea); font-size: 12px; color: var(--tenue); background: rgba(0,0,0,.2); }
+.lado.tuyo .lado-cab { color: #cfe2ff; }
+.lado-cuerpo { padding: 4px 13px 13px; }
+.campo-lado { padding: 9px 0; border-bottom: 1px solid var(--linea); }
+.campo-lado:last-child { border-bottom: 0; }
+.campo-lado.difiere { background: rgba(240, 184, 73, .07); margin: 0 -13px; padding: 9px 13px; }
+.campo-lado .nombre { font-size: 11px; color: var(--apagado); text-transform: uppercase; letter-spacing: .6px; }
+.campo-lado .contenido { margin-top: 3px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+.campo-lado .contenido.nulo { color: var(--apagado); font-style: italic; }
+
+/* --- Brindis --- */
+.brindis {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--fondo-3); border: 1px solid var(--linea); color: var(--texto);
+  padding: 10px 18px; border-radius: 9px; font-size: 13px; z-index: 100;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+.brindis.error { background: #3a1f24; border-color: #6b3038; color: #ffc9c9; }
+.brindis.bien { border-color: #2b5341; }
+
+@media (max-width: 900px) {
+  .vista-docs { grid-template-columns: 1fr; }
+  .lista-docs { position: static; flex-direction: row; flex-wrap: wrap; }
+  .lados { grid-template-columns: 1fr; }
+}

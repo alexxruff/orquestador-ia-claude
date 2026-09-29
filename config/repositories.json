@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "controlPlane": {
+    "path": ".",
+    "remote": "origin",
+    "remoteUrl": null,
+    "releaseBranch": "main"
+  },
+  "repos": {
+    "backend": {
+      "path": "../mi-proyecto-backend",
+      "remote": "origin",
+      "remoteUrl": null,
+      "releaseBranch": "main",
+      "deployScript": null
+    },
+    "frontend": {
+      "path": "../mi-proyecto-frontend",
+      "remote": "origin",
+      "remoteUrl": null,
+      "releaseBranch": "main",
+      "deployScript": null
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "reglas": {
+    "unaTareaALaVez": true,
+    "estados": [
+      "pending",
+      "proposed",
+      "in_progress",
+      "in_review",
+      "done",
+      "blocked"
+    ]
+  },
+  "tareas": []
+}

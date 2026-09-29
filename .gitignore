@@ -1,0 +1,16 @@
+# Nunca
+*.env
+.env.*
+credentials*
+
+# Archivo temporal del panel; sólo existe entre el fsync y el rename
+plan/.tareas.json.tmp-*
+
+# Ruido del sistema
+.DS_Store
+Thumbs.db
+
+node_modules/
+
+# Claude Code: las skills y agentes SÍ se versionan; los permisos locales no.
+.claude/settings.local.json

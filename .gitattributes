@@ -1,0 +1,3 @@
+# Todo en LF, en cualquier máquina: plan/tareas.json lo escriben varios agentes
+# y el panel, y un cambio de fin de línea lo reescribiría entero.
+* text=auto eol=lf
